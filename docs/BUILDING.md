@@ -11,19 +11,42 @@ Woss is a Swift package with no third-party dependencies.
   xcode-select --install
   ```
 
+## Check your Mac first
+
+```sh
+./scripts/check_deps.sh
+```
+
+The script only looks, it never changes anything. It checks the macOS version, the developer
+tools, the Swift version, the macOS SDK and the system tools the build uses, and for each
+problem it prints the command that fixes it. Typical results:
+
+| Message | What to do |
+| --- | --- |
+| Xcode developer tools are not installed | Run `xcode-select --install`, accept the window that opens, wait for it to finish, then run the check again |
+| The Xcode license has not been accepted | Run `sudo xcodebuild -license accept` |
+| macOS or Swift is too old | Update in System Settings → General → Software Update |
+| Missing project file | The folder is incomplete: clone or download it again |
+
+Woss has **no third-party dependencies**, so nothing else has to be installed and no internet
+connection is needed to build. `build_app.sh` runs this check automatically before building, so
+you can also skip straight to the next step.
+
 ## Build and run
 
 ```sh
 git clone <this repository>
 cd woss
 
+./scripts/check_deps.sh     # optional but recommended
 swift test                  # optional: run the unit tests
 ./scripts/build_app.sh      # creates dist/Woss.app
 open dist/Woss.app
 ```
 
-If the script is not executable (this can happen when files travel through chat apps or
-some archive tools), run it with `bash scripts/build_app.sh`.
+If a script is not executable (this can happen when files travel through chat apps or some
+archive tools), run it with `bash scripts/build_app.sh`, or fix it once with
+`chmod +x scripts/*.sh`.
 
 To install it, copy the app to `/Applications` and, from the menu bar icon, switch on
 **Launch at Login**:

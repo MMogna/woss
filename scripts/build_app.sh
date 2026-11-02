@@ -12,6 +12,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "▶ Checking this Mac"
+# (plain `cmd && ...` would not stop under `set -e`, so test the result explicitly)
+if ! bash scripts/check_deps.sh --quiet; then
+    exit 1
+fi
+
 if [ -f .env ]; then
     set -a
     # shellcheck disable=SC1091

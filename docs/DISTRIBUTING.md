@@ -4,15 +4,21 @@ There are three ways, from easiest for you to easiest for them.
 
 ## 1. They build it themselves (recommended)
 
-Send them the source (a zip of the repository, or the repository link). They need a Mac with
-macOS 13 or later and Xcode or the Command Line Tools, then:
+Send them the repository link (they can `git clone` it, or use GitHub's **Code → Download
+ZIP**). They need a Mac with macOS 13 or later and Xcode or the Command Line Tools, then, in
+Terminal:
 
 ```sh
-unzip woss.zip && cd woss          # skip this if they cloned the repository
+cd woss                            # the cloned or unzipped folder
+./scripts/check_deps.sh            # tells them exactly what is missing, if anything
 ./scripts/build_app.sh             # or: bash scripts/build_app.sh
 cp -R dist/Woss.app /Applications/
 open /Applications/Woss.app
 ```
+
+`check_deps.sh` is the friendly first step: it explains in plain words what to install or
+update. The only thing most people need is the Command Line Tools (`xcode-select --install`,
+a few minutes of download), and they never need an Apple developer account.
 
 An app that is built on the same Mac it runs on carries no "downloaded from the internet"
 flag, so macOS shows no warning. They only have to grant **Accessibility** (see

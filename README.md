@@ -73,6 +73,7 @@ minute and needs only Xcode or the Command Line Tools:
 ```sh
 git clone <this repository>
 cd woss
+./scripts/check_deps.sh     # checks that your Mac has what it needs, and tells you how to fix anything missing
 ./scripts/build_app.sh
 open dist/Woss.app
 ```
@@ -127,8 +128,9 @@ defaults. Every save keeps the previous file as `config.json.bak`.
 - Swap and tidy only see **windows on the current Space**. macOS does not let apps move
   windows that are on another Space.
 - Dialogs, palettes, minimized and full-screen windows are ignored by swap and tidy.
-- Shortcuts are matched by key position on a **US keyboard layout**. On other layouts the
-  physical key may produce a different character than the one shown.
+- Shortcuts are stored by **physical key position**, named after the US layout, so a config
+  works on any keyboard. Preferences and the swap badges show the character your own layout
+  prints on that key. The extra ISO key (left of `Z`) is available as `iso` in the config file.
 - A window with a minimum size can't always shrink to a small layout; Woss moves it back on
   screen but cannot make it smaller.
 - Other window managers (Rectangle, Magnet…) may use the same shortcuts. Quit them or
@@ -141,7 +143,7 @@ Sources/WossCore   layouts, key codes, screen math, loops, tiling   (no AppKit, 
 Sources/Woss       menu bar, global hotkeys, Accessibility, Preferences window
 Tests/             unit tests for WossCore
 Resources/         app icon and menu bar icon (SVG sources included)
-scripts/           build_app.sh
+scripts/           check_deps.sh (is my Mac ready?), build_app.sh
 docs/              build and distribution guides
 ```
 
