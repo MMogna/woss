@@ -1,57 +1,86 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import AppKit
 import ApplicationServices
 import WossCore
 
+/// A window, compared by the identity of its Accessibility element — NOT by its title.
+/// Titles change when a window is moved or resized (Terminal puts its size in the title,
+/// browsers put the page there), which used to restart loops halfway through.
+struct WindowRef: Equatable {
+    let element: AXUIElement
+
+    static func == (lhs: WindowRef, rhs: WindowRef) -> Bool {
+        CFEqual(lhs.element, rhs.element)
+    }
+}
+
+/// Type-checked casts for Accessibility values (no force-casting of unknown CF types).
+func asAXElement(_ value: AnyObject?) -> AXUIElement? {
+    guard let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    return (value as! AXUIElement)
+}
+
+func asAXValue(_ value: AnyObject?) -> AXValue? {
+    guard let value, CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+    return (value as! AXValue)
+}
+
 /// Talks to other apps' windows through the Accessibility API.
 /// Everything here must run on the main thread.
 final class WindowManager {
-    private var cycle = CycleState()
+    private var cycle = CycleState<WindowRef>()
 
-    // MARK: - public actions
+    init() {
+        // Without this, a frozen app can block every Accessibility call for 6 seconds, and
+        // because the key listener shares the main thread, the whole keyboard would lag.
+        AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.5)
+    }
 
-    /// Hotkey press: cycles through `rects` if the same key is pressed again on the same window.
+    func resetCycle() {
+        cycle.reset()
+    }
+
+    // MARK: - actions
+
+    /// Hotkey press: advances through `rects` if the same key is pressed again on the same window.
     func snapStep(rects: [RelRect], hotkey: String) {
-        guard !rects.isEmpty, let win = focusedWindow() else { return }
-        let step = cycle.advance(window: win.id, hotkey: hotkey, count: rects.count)
-        let screen = screenFrameAX(forWindowFrame: frame(of: win.element))
+        guard !rects.isEmpty, let element = focusedWindow() else { return }
+
+        let step = cycle.advance(window: WindowRef(element: element), hotkey: hotkey, count: rects.count)
+        let screen = screenFrameAX(forWindowFrame: frame(of: element))
         let target = Geometry.snapFrame(rects[step], in: screen)
-        setFrame(target, of: win.element)
+        applyFrame(target, to: element)
+
+        // A window with a minimum size may refuse to shrink to the target and end up hanging
+        // off the screen edge. Pull it back in (position only, never resize).
+        if let actual = frame(of: element) {
+            let fitted = Geometry.fit(actual, into: screen)
+            if fitted.origin != actual.origin {
+                setPosition(fitted.origin, of: element)
+            }
+        }
     }
 
     func resize(_ action: ResizeAction) {
-        guard let win = focusedWindow(), let current = frame(of: win.element) else { return }
+        guard let element = focusedWindow(), let current = frame(of: element) else { return }
         let screen = screenFrameAX(forWindowFrame: current)
         let target = Geometry.resizeRelative(window: current, screen: screen,
                                              scaleW: action.scaleW, scaleH: action.scaleH)
-        setFrame(target, of: win.element)
-        cycle.reset() // geometry changed under the cycle, start fresh next time
+        applyFrame(target, to: element)
+        cycle.reset() // geometry changed under the loop, start fresh next time
     }
 
     // MARK: - Accessibility helpers
 
-    private struct FocusedWindow {
-        let element: AXUIElement
-        let id: WindowID
-    }
-
-    private func focusedWindow() -> FocusedWindow? {
+    private func focusedWindow() -> AXUIElement? {
         guard let app = NSWorkspace.shared.frontmostApplication else { return nil }
-        let pid = app.processIdentifier
-        let axApp = AXUIElementCreateApplication(pid)
+        let axApp = AXUIElementCreateApplication(app.processIdentifier)
 
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &value) == .success,
-              let value
-        else { return nil }
-        let element = value as! AXUIElement
-
-        var title = ""
-        var titleRef: CFTypeRef?
-        if AXUIElementCopyAttributeValue(element, kAXTitleAttribute as CFString, &titleRef) == .success,
-           let s = titleRef as? String {
-            title = s
+        guard AXUIElementCopyAttributeValue(axApp, kAXFocusedWindowAttribute as CFString, &value) == .success else {
+            return nil
         }
-        return FocusedWindow(element: element, id: WindowID(pid: pid, title: title))
+        return asAXElement(value)
     }
 
     func frame(of window: AXUIElement) -> CGRect? {
@@ -59,25 +88,22 @@ final class WindowManager {
         var sizeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &posRef) == .success,
               AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &sizeRef) == .success,
-              let posRef, let sizeRef
+              let posValue = asAXValue(posRef),
+              let sizeValue = asAXValue(sizeRef)
         else { return nil }
 
         var point = CGPoint.zero
         var size = CGSize.zero
-        guard AXValueGetValue(posRef as! AXValue, .cgPoint, &point),
-              AXValueGetValue(sizeRef as! AXValue, .cgSize, &size)
+        guard AXValueGetValue(posValue, .cgPoint, &point),
+              AXValueGetValue(sizeValue, .cgSize, &size)
         else { return nil }
         return CGRect(origin: point, size: size)
     }
 
-    private func setFrame(_ rect: CGRect, of window: AXUIElement) {
-        var point = rect.origin
-        var size = rect.size
+    func setPosition(_ origin: CGPoint, of window: AXUIElement) {
+        var point = origin
         if let pv = AXValueCreate(.cgPoint, &point) {
             _ = AXUIElementSetAttributeValue(window, kAXPositionAttribute as CFString, pv)
-        }
-        if let sv = AXValueCreate(.cgSize, &size) {
-            _ = AXUIElementSetAttributeValue(window, kAXSizeAttribute as CFString, sv)
         }
     }
 

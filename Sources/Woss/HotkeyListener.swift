@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import AppKit
 import CoreGraphics
 import WossCore
@@ -53,13 +54,17 @@ final class HotkeyListener {
         }
         guard type == .keyDown else { return Unmanaged.passUnretained(event) }
 
-        let required: CGEventFlags = [.maskControl, .maskAlternate]
-        let hasModifiers = event.flags.contains(required)
+        // Exactly Ctrl+Option: ⌃⌥⌘Q or ⌃⌥⇧A must stay untouched for other apps.
+        let relevant: CGEventFlags = [.maskControl, .maskAlternate, .maskCommand, .maskShift]
+        let wanted: CGEventFlags = [.maskControl, .maskAlternate]
+        let hasModifiers = event.flags.intersection(relevant) == wanted
+
         let keycode = Int(event.getIntegerValueField(.keyboardEventKeycode))
+        // Holding a key sends repeats; acting on them would race through a whole loop.
+        let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
 
         // Modal mode (swap): take every key.
         if modalActive {
-            let isRepeat = event.getIntegerValueField(.keyboardEventAutorepeat) != 0
             if !isRepeat {
                 DispatchQueue.main.async { [weak self] in
                     self?.modalHandler?(keycode, hasModifiers)
@@ -74,10 +79,12 @@ final class HotkeyListener {
         else { return Unmanaged.passUnretained(event) }
 
         // Do the real work outside the tap callback so the callback returns immediately.
-        DispatchQueue.main.async { [weak self] in
-            self?.onAction?(action, hotkey)
+        if !isRepeat {
+            DispatchQueue.main.async { [weak self] in
+                self?.onAction?(action, hotkey)
+            }
         }
-        return nil // swallow
+        return nil // swallow (also the repeats)
     }
 }
 

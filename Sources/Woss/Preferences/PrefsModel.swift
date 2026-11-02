@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 import WossCore
 
@@ -19,6 +20,10 @@ struct LayoutRow: Identifiable {
 final class PrefsModel: ObservableObject {
     @Published var layoutRows: [LayoutRow]
     @Published var keys: ActionKeys
+
+    /// Layouts from config.json that are not part of the built-in list (hand-added ones).
+    /// They are not shown in the window, but they are kept when saving.
+    private var extras: [Layout] = []
 
     /// Display order of the sections.
     static let sections = [
@@ -49,6 +54,26 @@ final class PrefsModel: ObservableObject {
     init(layouts: [Layout], keys: ActionKeys) {
         self.layoutRows = PrefsModel.rows(from: layouts)
         self.keys = keys
+        let known = Set(DefaultLayouts.all.map(\.name))
+        self.extras = layouts.filter { !known.contains($0.name) }
+    }
+
+    /// Keys that would silently shadow each other: two different actions on one key, or an
+    /// action on a key that a layout already uses. (Layouts sharing a key is a loop, which
+    /// is intentional, so that is not a conflict.)
+    var conflictingKeys: Set<String> {
+        var actionUse: [String: Int] = [:]
+        for key in [keys.width, keys.height, keys.both, keys.swap, keys.tile] where !key.isEmpty {
+            actionUse[key, default: 0] += 1
+        }
+        var layoutKeys = Set(layoutRows.map(\.hotkey).filter { !$0.isEmpty })
+        for l in extras where !l.hotkey.isEmpty { layoutKeys.insert(l.hotkey) }
+
+        var result = Set<String>()
+        for (key, count) in actionUse where count > 1 || layoutKeys.contains(key) {
+            result.insert(key)
+        }
+        return result
     }
 
     func indices(in section: String) -> [Int] {
@@ -81,6 +106,7 @@ final class PrefsModel: ObservableObject {
     func resetDefaults() {
         layoutRows = PrefsModel.rows(from: DefaultLayouts.all)
         keys = ActionKeys()
+        extras = []
     }
 
     /// Bound rows -> flat layout list for config.json. Rows rebound to the same key
@@ -95,6 +121,6 @@ final class PrefsModel: ObservableObject {
                 byKey[row.hotkey, default: []].append(l)
             }
         }
-        return order.flatMap { byKey[$0]! }
+        return order.flatMap { byKey[$0]! } + extras
     }
 }

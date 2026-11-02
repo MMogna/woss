@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import SwiftUI
 import WossCore
 
@@ -155,6 +156,7 @@ struct ShortcutCard<Icon: View>: View {
     let help: String
     let icon: (Bool) -> Icon
     @Binding var hotkey: String
+    var isConflict: Bool = false
 
     @State private var hovering = false
 
@@ -180,8 +182,12 @@ struct ShortcutCard<Icon: View>: View {
             RoundedRectangle(cornerRadius: 10)
                 .fill(Color.primary.opacity(hovering ? 0.09 : 0.05))
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.red.opacity(0.85), lineWidth: isConflict ? 1.5 : 0)
+        )
         .onHover { hovering = $0 }
-        .help(help)
+        .help(isConflict ? help + "\n⚠️ This key is also used by another action, so one of them will not work." : help)
     }
 }
 
@@ -233,12 +239,14 @@ struct PrefsView: View {
 
     private func layoutCard(index i: Int) -> some View {
         let row = model.layoutRows[i]
+        let conflicts = model.conflictingKeys
         return ShortcutCard(
             title: row.title,
             subtitle: row.isLoop ? "↻ Loops through \(row.layouts.count) positions" : nil,
             help: row.isLoop ? row.stepNames : row.title,
             icon: { hovering in RegionIcon(rects: row.rects, animate: hovering) },
-            hotkey: $model.layoutRows[i].hotkey
+            hotkey: $model.layoutRows[i].hotkey,
+            isConflict: conflicts.contains(row.hotkey)
         )
     }
 
@@ -249,15 +257,18 @@ struct PrefsView: View {
                 ShortcutCard(title: "Double Width", subtitle: "Grows the window, stays on screen",
                              help: "Double Width",
                              icon: { _ in ResizeIcon(mode: .width) },
-                             hotkey: $model.keys.width)
+                             hotkey: $model.keys.width,
+                             isConflict: model.conflictingKeys.contains(model.keys.width))
                 ShortcutCard(title: "Double Height", subtitle: "Grows the window, stays on screen",
                              help: "Double Height",
                              icon: { _ in ResizeIcon(mode: .height) },
-                             hotkey: $model.keys.height)
+                             hotkey: $model.keys.height,
+                             isConflict: model.conflictingKeys.contains(model.keys.height))
                 ShortcutCard(title: "Double Size", subtitle: "Grows the window, stays on screen",
                              help: "Double Size",
                              icon: { _ in ResizeIcon(mode: .both) },
-                             hotkey: $model.keys.both)
+                             hotkey: $model.keys.both,
+                             isConflict: model.conflictingKeys.contains(model.keys.both))
             }
         }
     }
@@ -269,11 +280,13 @@ struct PrefsView: View {
                 ShortcutCard(title: "Tidy Windows", subtitle: "Arrange all open windows in a grid",
                              help: "Arranges every visible window into a neat grid, one grid per screen.",
                              icon: { _ in TileIcon() },
-                             hotkey: $model.keys.tile)
+                             hotkey: $model.keys.tile,
+                             isConflict: model.conflictingKeys.contains(model.keys.tile))
                 ShortcutCard(title: "Swap Windows", subtitle: "Label every window, then pick two",
                              help: "Press the key, then the label of two windows to swap them. Esc cancels.",
                              icon: { _ in SwapIcon() },
-                             hotkey: $model.keys.swap)
+                             hotkey: $model.keys.swap,
+                             isConflict: model.conflictingKeys.contains(model.keys.swap))
             }
         }
     }

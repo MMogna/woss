@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import AppKit
 import ApplicationServices
 import CoreGraphics
@@ -59,6 +60,7 @@ extension WindowManager {
     func swapWindows(_ a: SwapCandidate, _ b: SwapCandidate) {
         applyFrame(b.frame, to: a.element)
         applyFrame(a.frame, to: b.element)
+        resetCycle() // windows moved under any running loop
     }
 
     // MARK: - helpers
@@ -74,7 +76,7 @@ extension WindowManager {
 
         var result: [(element: AXUIElement, frame: CGRect)] = []
         for object in array {
-            let element = object as! AXUIElement
+            guard let element = asAXElement(object) else { continue }
 
             var subroleRef: CFTypeRef?
             if AXUIElementCopyAttributeValue(element, kAXSubroleAttribute as CFString, &subroleRef) == .success,

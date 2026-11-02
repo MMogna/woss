@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
 /// One snap target. Stored in config.json as a 6-element array, exactly like the

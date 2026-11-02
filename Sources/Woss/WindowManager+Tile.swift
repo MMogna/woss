@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import AppKit
 import WossCore
 
@@ -29,5 +30,6 @@ extension WindowManager {
                 applyFrame(targets[i], to: w.element)
             }
         }
+        resetCycle() // windows moved under any running loop
     }
 }

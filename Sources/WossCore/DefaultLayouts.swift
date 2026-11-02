@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
 /// The built-in layouts. Generated 1:1 from the Python version's default_layouts.json.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
 /// Everything that is saved in config.json.
@@ -56,6 +57,14 @@ public enum LayoutStore {
             at: url.deletingLastPathComponent(),
             withIntermediateDirectories: true
         )
+        // If the old file was unreadable we silently loaded defaults; keep the previous
+        // version next to it so a save can never destroy someone's hand-edited config.
+        if FileManager.default.fileExists(atPath: url.path) {
+            let backup = url.appendingPathExtension("bak")
+            try? FileManager.default.removeItem(at: backup)
+            try? FileManager.default.copyItem(at: url, to: backup)
+        }
+
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let file = ConfigFile(layouts: config.layouts, actions: config.keys)

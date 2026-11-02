@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
 /// macOS virtual keycodes (US layout) <-> the hotkey strings used in config.json.

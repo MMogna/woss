@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 #if canImport(CoreGraphics)
 import CoreGraphics
@@ -97,5 +98,16 @@ public enum Geometry {
         newY = max(sy, min(newY, maxY))
 
         return CGRect(x: newX, y: newY, width: newW, height: newH)
+    }
+
+    /// Moves (never resizes) a frame so it lies inside `area`. If the frame is larger than
+    /// the area it is pinned to the top-left. Used when a window refuses to shrink to the
+    /// requested size (minimum size) and would otherwise hang off the screen edge.
+    public static func fit(_ frame: CGRect, into area: CGRect) -> CGRect {
+        let maxX: CGFloat = area.maxX - frame.size.width
+        let maxY: CGFloat = area.maxY - frame.size.height
+        let x: CGFloat = max(area.minX, min(frame.origin.x, maxX))
+        let y: CGFloat = max(area.minY, min(frame.origin.y, maxY))
+        return CGRect(origin: CGPoint(x: x, y: y), size: frame.size)
     }
 }
