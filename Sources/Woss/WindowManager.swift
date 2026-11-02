@@ -31,8 +31,9 @@ final class WindowManager {
     private var cycle = CycleState<WindowRef>()
 
     init() {
-        // Without this, a frozen app can block every Accessibility call for 6 seconds, and
-        // because the key listener shares the main thread, the whole keyboard would lag.
+        // Without this, a frozen app can block an Accessibility call for 6 seconds, freezing
+        // Woss's menus and windows for that long. (The key listener has its own thread, so
+        // the keyboard itself is never held up.)
         AXUIElementSetMessagingTimeout(AXUIElementCreateSystemWide(), 0.5)
     }
 

@@ -37,7 +37,8 @@ final class SwapController {
 
         let centers = SwapLabels.badgeCenters(for: windows.map(\.frame))
         let labels = windows.indices.compactMap { SwapLabels.label(at: $0) }
-        overlay.show(labels: labels, centers: centers)
+        // Badges show what the key prints on THIS keyboard layout (matters for AZERTY, QWERTZ...).
+        overlay.show(labels: labels.map { KeyLabels.display(forHotkey: $0) }, centers: centers)
 
         firstIndex = nil
         isActive = true

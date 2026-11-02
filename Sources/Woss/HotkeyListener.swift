@@ -6,25 +6,47 @@ import WossCore
 /// Global Ctrl+Option hotkeys via a CGEventTap. A matched keystroke is swallowed
 /// (callback returns nil) so it never reaches the focused app.
 ///
+/// THREADING: macOS waits for the tap's answer before it delivers each keystroke, so the tap
+/// runs on its own thread. If it shared the main thread, anything slow there (for example
+/// waiting on a frozen app's window) would make the whole keyboard lag. Only `table` and
+/// `modalActive` are shared between the two threads, and both sit behind a lock. All real
+/// work (moving windows, swap mode) is handed to the main thread.
+///
 /// While `modalActive` is true (swap mode), EVERY keystroke is swallowed and handed to
 /// `modalHandler` instead, so plain keys like "1" can be used without modifiers.
 final class HotkeyListener {
-    var table = HotkeyTable(layouts: [])
+    /// Both closures are only ever called on the main thread.
     var onAction: ((HotkeyAction, String) -> Void)?
-
-    var modalActive = false
     /// (keyCode, ctrl+option held)
     var modalHandler: ((Int, Bool) -> Void)?
 
-    private var tap: CFMachPort?
-    private var source: CFRunLoopSource?
+    private let lock = NSLock()
+    private var currentTable = HotkeyTable(layouts: [])
+    private var isModal = false
 
-    var isRunning: Bool { tap != nil }
+    /// Thread-safe: written on the main thread, read on the tap thread.
+    var table: HotkeyTable {
+        get { lock.lock(); defer { lock.unlock() }; return currentTable }
+        set { lock.lock(); currentTable = newValue; lock.unlock() }
+    }
+
+    /// Thread-safe: written on the main thread, read on the tap thread.
+    var modalActive: Bool {
+        get { lock.lock(); defer { lock.unlock() }; return isModal }
+        set { lock.lock(); isModal = newValue; lock.unlock() }
+    }
+
+    private var tap: CFMachPort?     // set once, before the tap thread starts
+    private var worker: Thread?
+
+    var isRunning: Bool { worker != nil }
 
     /// Returns false if macOS refused to create the tap (usually: permission not granted yet).
+    /// The tap is created here so success or failure is known immediately; the thread only
+    /// serves its events.
     @discardableResult
     func start() -> Bool {
-        guard tap == nil else { return true }
+        guard worker == nil else { return true }
 
         let mask: CGEventMask = 1 << CGEventType.keyDown.rawValue
         let me = Unmanaged.passUnretained(self).toOpaque()
@@ -38,14 +60,28 @@ final class HotkeyListener {
             userInfo: me
         ) else { return false }
 
+        guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else { return false }
         self.tap = tap
-        let src = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        source = src
-        CFRunLoopAddSource(CFRunLoopGetMain(), src, .commonModes)
-        CGEvent.tapEnable(tap: tap, enable: true)
+
+        let thread = Thread {
+            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
+            CGEvent.tapEnable(tap: tap, enable: true)
+            CFRunLoopRun() // serves the tap until the app quits
+        }
+        thread.name = "woss.hotkeys"
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        worker = thread
         return true
     }
 
+    private func action(for hotkey: String) -> HotkeyAction? {
+        lock.lock()
+        defer { lock.unlock() }
+        return currentTable.action(for: hotkey)
+    }
+
+    /// Runs on the tap thread.
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         // macOS disables a tap that is too slow; turn it back on instead of silently dying.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
@@ -75,10 +111,9 @@ final class HotkeyListener {
 
         guard hasModifiers else { return Unmanaged.passUnretained(event) }
         guard let hotkey = KeyCodes.hotkey(forKeyCode: keycode),
-              let action = table.action(for: hotkey)
+              let action = action(for: hotkey)
         else { return Unmanaged.passUnretained(event) }
 
-        // Do the real work outside the tap callback so the callback returns immediately.
         if !isRepeat {
             DispatchQueue.main.async { [weak self] in
                 self?.onAction?(action, hotkey)

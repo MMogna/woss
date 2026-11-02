@@ -68,6 +68,21 @@ final class KeyCodeTests: XCTestCase {
         XCTAssertEqual(Hotkey.display("r"), "⌃⌥R")
         XCTAssertEqual(Hotkey.display(""), "Unbound")
     }
+
+    func testDisplayUsesTheLayoutsCharacterWhenKnown() {
+        XCTAssertEqual(Hotkey.display("y", character: "z"), "⌃⌥Z")   // QWERTZ: Y position prints Z
+        XCTAssertEqual(Hotkey.display("1", character: "&"), "⌃⌥&")   // AZERTY digit row
+        XCTAssertEqual(Hotkey.display("left", character: "x"), "⌃⌥←") // arrows never change
+        XCTAssertEqual(Hotkey.display("r", character: ""), "⌃⌥R")
+        XCTAssertEqual(Hotkey.display("iso"), "⌃⌥ISO")
+        XCTAssertEqual(Hotkey.display("iso", character: "<"), "⌃⌥<")
+    }
+
+    func testIsoKeyIsBindable() {
+        XCTAssertEqual(KeyCodes.keyCode(forHotkey: "iso"), 10)
+        XCTAssertEqual(KeyCodes.hotkey(forKeyCode: 10), "iso")
+        XCTAssertEqual(Hotkey.normalize("ISO"), "iso")
+    }
 }
 
 final class DefaultLayoutTests: XCTestCase {

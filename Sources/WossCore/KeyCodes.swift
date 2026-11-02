@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 import Foundation
 
-/// macOS virtual keycodes (US layout) <-> the hotkey strings used in config.json.
+/// macOS virtual keycodes <-> the hotkey strings used in config.json.
+///
+/// Hotkey names identify a PHYSICAL KEY POSITION, named after what that key prints on a US
+/// keyboard. That keeps a config portable between keyboard layouts. What the key actually
+/// prints on the user's layout is looked up separately when it is shown on screen.
 public enum KeyCodes {
     static let special: [String: Int] = [
         "left": 123, "right": 124, "down": 125, "up": 126, "space": 49, "enter": 36,
+        "iso": 10, // the extra key next to left Shift on ISO keyboards (not on US ones)
     ]
 
     static let chars: [String: Int] = [
@@ -38,10 +43,14 @@ public enum Hotkey {
         return nil
     }
 
-    /// 'left' -> '⌃⌥←', 'r' -> '⌃⌥R', '' -> 'Unbound'
-    public static func display(_ hotkey: String) -> String {
+    /// 'left' -> '⌃⌥←', 'r' -> '⌃⌥R', '' -> 'Unbound'.
+    /// `character` is what the key prints on the user's keyboard layout, if known; it replaces
+    /// the US name for letters, digits and punctuation (arrows and Enter keep their symbols).
+    public static func display(_ hotkey: String, character: String? = nil) -> String {
         if hotkey.isEmpty { return "Unbound" }
         let symbols = ["left": "←", "right": "→", "up": "↑", "down": "↓", "space": "Space", "enter": "↵"]
-        return "⌃⌥" + (symbols[hotkey] ?? hotkey.uppercased())
+        if let symbol = symbols[hotkey] { return "⌃⌥" + symbol }
+        if let character, !character.isEmpty { return "⌃⌥" + character.uppercased() }
+        return "⌃⌥" + hotkey.uppercased()
     }
 }

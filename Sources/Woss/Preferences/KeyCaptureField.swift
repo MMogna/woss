@@ -92,7 +92,7 @@ final class KeyCaptureView: NSView {
         }
         path.stroke()
 
-        let text = message ?? Hotkey.display(hotkey)
+        let text = message ?? Hotkey.display(hotkey, character: KeyLabels.character(forHotkey: hotkey))
         let color: NSColor
         if capturing {
             color = accent
