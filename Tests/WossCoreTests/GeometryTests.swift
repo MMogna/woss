@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import XCTest
 #if canImport(CoreGraphics)
 import CoreGraphics
@@ -80,5 +81,22 @@ final class GeometryTests: XCTestCase {
     func testResizeIsClampedToScreen() {
         let r = Geometry.resizeRelative(window: CGRect(x: 0, y: 25, width: 1000, height: 300), screen: screen, scaleW: 2, scaleH: 1)
         assertRect(r, 0, 25, 1440, 300)
+    }
+
+    // MARK: fit
+
+    func testFitPullsOverflowingWindowBackOnScreen() {
+        let r = Geometry.fit(CGRect(x: 1300, y: 100, width: 400, height: 300), into: screen)
+        assertRect(r, 1040, 100, 400, 300)
+    }
+
+    func testFitLeavesAWindowThatAlreadyFitsAlone() {
+        let w = CGRect(x: 100, y: 100, width: 400, height: 300)
+        assertRect(Geometry.fit(w, into: screen), 100, 100, 400, 300)
+    }
+
+    func testFitPinsOversizedWindowToTopLeft() {
+        let r = Geometry.fit(CGRect(x: 500, y: 0, width: 2000, height: 300), into: screen)
+        assertRect(r, 0, 25, 2000, 300)
     }
 }

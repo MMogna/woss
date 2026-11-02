@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 import XCTest
 @testable import WossCore
 
@@ -6,7 +7,7 @@ final class CycleStateTests: XCTestCase {
     let b = WindowID(pid: 1, title: "B")
 
     func testSameWindowSameKeyCycles() {
-        var s = CycleState()
+        var s = CycleState<WindowID>()
         XCTAssertEqual(s.advance(window: a, hotkey: "3", count: 3), 0)
         XCTAssertEqual(s.advance(window: a, hotkey: "3", count: 3), 1)
         XCTAssertEqual(s.advance(window: a, hotkey: "3", count: 3), 2)
@@ -14,7 +15,7 @@ final class CycleStateTests: XCTestCase {
     }
 
     func testDifferentKeyOrWindowRestarts() {
-        var s = CycleState()
+        var s = CycleState<WindowID>()
         _ = s.advance(window: a, hotkey: "3", count: 3)
         XCTAssertEqual(s.advance(window: a, hotkey: "3", count: 3), 1)
         XCTAssertEqual(s.advance(window: a, hotkey: "4", count: 4), 0)
@@ -23,7 +24,7 @@ final class CycleStateTests: XCTestCase {
     }
 
     func testResetRestarts() {
-        var s = CycleState()
+        var s = CycleState<WindowID>()
         _ = s.advance(window: a, hotkey: "3", count: 3)
         _ = s.advance(window: a, hotkey: "3", count: 3)
         s.reset()
@@ -31,7 +32,7 @@ final class CycleStateTests: XCTestCase {
     }
 
     func testSingleRectAlwaysZero() {
-        var s = CycleState()
+        var s = CycleState<WindowID>()
         XCTAssertEqual(s.advance(window: a, hotkey: "left", count: 1), 0)
         XCTAssertEqual(s.advance(window: a, hotkey: "left", count: 1), 0)
     }
@@ -194,6 +195,14 @@ final class LayoutStoreTests: XCTestCase {
         let url = tempURL()
         try write(#"{"actions": {"swap": ""}}"#, to: url)
         XCTAssertEqual(LayoutStore.loadConfig(from: url).keys.swap, "")
+    }
+
+    func testSavingKeepsABackupOfThePreviousFile() throws {
+        let url = tempURL()
+        try write("not json at all", to: url)
+        try LayoutStore.saveConfig(.defaults, to: url)
+        let backup = try String(contentsOf: url.appendingPathExtension("bak"), encoding: .utf8)
+        XCTAssertEqual(backup, "not json at all")
     }
 
     func testCorruptFileFallsBackToDefaults() throws {

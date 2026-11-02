@@ -1,5 +1,17 @@
+# SwiftPM / Xcode
 .build/
 .swiftpm/
 *.xcodeproj
-.DS_Store
+xcuserdata/
+DerivedData/
+
+# Build output
 dist/
+
+# Personal settings (see .env.example)
+.env
+
+# macOS / editors
+.DS_Store
+.idea/
+.vscode/
