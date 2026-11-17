@@ -25,7 +25,10 @@ extension WindowManager {
 
         for (index, group) in groups {
             let area = Geometry.axVisibleFrame(screens[index].visibleFrame, desktopTop: desktopTop)
-            let targets = Tiling.tile(group.map(\.frame), in: area)
+            // same gap rule as Geometry.snapFrame: half off the area, half off each cell
+            let half = gap / 2
+            let targets = Tiling.tile(group.map(\.frame), in: area.insetBy(dx: half, dy: half))
+                .map { $0.insetBy(dx: half, dy: half) }
             for (i, w) in group.enumerated() {
                 applyFrame(targets[i], to: w.element)
             }

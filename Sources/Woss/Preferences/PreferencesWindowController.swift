@@ -12,11 +12,11 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
             return
         }
 
-        let model = PrefsModel(layouts: state.layouts, keys: state.keys)
+        let model = PrefsModel(layouts: state.layouts, keys: state.keys, gap: state.gap)
         let view = PrefsView(
             model: model,
             onSave: { [weak self] in
-                state.apply(layouts: model.flattenedLayouts(), keys: model.keys)
+                state.apply(layouts: model.flattenedLayouts(), keys: model.keys, gap: model.gap)
                 self?.window?.close()
             },
             onCancel: { [weak self] in

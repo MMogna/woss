@@ -29,6 +29,8 @@ third, again for the right third. You only need to remember a handful of keys, n
   The grid is chosen so every window gets a natural shape and a similar size (7 windows become
   three columns holding 3, 2 and 2), never one window stretched over a whole row.
 - **Double width / height / size.** Grow a window while keeping it on screen.
+- **Gaps.** An optional gap (in points) between snapped and tidied windows and around the
+  screen edges, set in Preferences.
 - **Multiple displays.** Layouts apply to the screen the window is on.
 - **Rebind everything** in Preferences, including making your own loops by giving two actions
   the same key. Conflicting keys are highlighted.
@@ -104,14 +106,16 @@ Preferences (menu bar icon → *Preferences…*) edits everything and writes
     "doubleSize": "d",
     "swap": "s",
     "tile": "a"
-  }
+  },
+  "gap": 0
 }
 ```
 
 A layout is `[name, x, y, width, height, key]`. The numbers are fractions of the screen's
 usable area, and `y` is measured from the **bottom**. Layouts with the same key form a loop,
 in file order. An empty key (`""`) unbinds an action. Missing entries fall back to the
-defaults. Every save keeps the previous file as `config.json.bak`.
+defaults. `gap` is the space in points between windows and around the screen edge (0 = none).
+Every save keeps the previous file as `config.json.bak`.
 
 ## Permissions and privacy
 

@@ -21,6 +21,20 @@ final class GeometryTests: XCTestCase {
         assertRect(Geometry.snapFrame(RelRect(x: 0, y: 0, w: 0.5, h: 1), in: screen), 0, 25, 720, 875)
     }
 
+    func testGapSeparatesHalvesAndEdges() {
+        let left = Geometry.snapFrame(RelRect(x: 0, y: 0, w: 0.5, h: 1), in: screen, gap: 10)
+        let right = Geometry.snapFrame(RelRect(x: 0.5, y: 0, w: 0.5, h: 1), in: screen, gap: 10)
+        assertRect(left, 10, 35, 705, 855)
+        assertRect(right, 725, 35, 705, 855)
+        XCTAssertEqual(right.minX - left.maxX, 10, accuracy: 0.01)
+        XCTAssertEqual(screen.maxX - right.maxX, 10, accuracy: 0.01)
+    }
+
+    func testZeroGapMatchesPlainSnap() {
+        let r = RelRect(x: 0, y: 0.5, w: 1, h: 0.5)
+        XCTAssertEqual(Geometry.snapFrame(r, in: screen, gap: 0), Geometry.snapFrame(r, in: screen))
+    }
+
     func testTopHalfSitsAtTopOfVisibleArea() {
         assertRect(Geometry.snapFrame(RelRect(x: 0, y: 0.5, w: 1, h: 0.5), in: screen), 0, 25, 1440, 437.5)
     }

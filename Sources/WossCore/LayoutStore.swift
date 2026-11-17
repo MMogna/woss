@@ -5,10 +5,13 @@ import Foundation
 public struct WossConfig: Equatable {
     public var layouts: [Layout]
     public var keys: ActionKeys
+    /// Points of empty space between snapped/tidied windows and around the screen edge.
+    public var gap: Int
 
-    public init(layouts: [Layout], keys: ActionKeys) {
+    public init(layouts: [Layout], keys: ActionKeys, gap: Int = 0) {
         self.layouts = layouts
         self.keys = keys
+        self.gap = gap
     }
 
     public static var defaults: WossConfig {
@@ -19,7 +22,8 @@ public struct WossConfig: Equatable {
 /// Loads/saves ~/.config/woss/config.json.
 ///
 /// Current format:   { "layouts": [ [name, x, y, w, h, hotkey], ... ],
-///                     "actions": { "doubleWidth": "x", "swap": "s", "tile": "a", ... } }
+///                     "actions": { "doubleWidth": "x", "swap": "s", "tile": "a", ... },
+///                     "gap": 0 }
 /// The old format (a bare array of layouts, as written by the Python Gridshift) is still read.
 public enum LayoutStore {
     public static var configDirectory: URL {
@@ -35,6 +39,7 @@ public enum LayoutStore {
     private struct ConfigFile: Codable {
         var layouts: [Layout]?
         var actions: ActionKeys?
+        var gap: Int?
     }
 
     /// Missing or unreadable file -> defaults.
@@ -44,7 +49,8 @@ public enum LayoutStore {
 
         if let file = try? decoder.decode(ConfigFile.self, from: data) {
             return WossConfig(layouts: file.layouts ?? DefaultLayouts.all,
-                              keys: file.actions ?? ActionKeys())
+                              keys: file.actions ?? ActionKeys(),
+                              gap: max(0, file.gap ?? 0)) // hand-edited: never negative
         }
         if let legacy = try? decoder.decode([Layout].self, from: data) {
             return WossConfig(layouts: legacy, keys: ActionKeys())
@@ -67,7 +73,7 @@ public enum LayoutStore {
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let file = ConfigFile(layouts: config.layouts, actions: config.keys)
+        let file = ConfigFile(layouts: config.layouts, actions: config.keys, gap: config.gap)
         try encoder.encode(file).write(to: url, options: .atomic)
     }
 }

@@ -288,7 +288,31 @@ struct PrefsView: View {
                              hotkey: $model.keys.swap,
                              isConflict: model.conflictingKeys.contains(model.keys.swap))
             }
+            gapCard
         }
+    }
+
+    /// Not a shortcut, so it gets its own card styled like ShortcutCard.
+    private var gapCard: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Gap Between Windows")
+                Text("Applies to layouts and tidy, including the screen edges")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            TextField("", value: $model.gap, format: .number)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 44)
+            Stepper("Gap in points", value: $model.gap, in: 0...100)
+                .labelsHidden()
+            Text("pt").foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.primary.opacity(0.05)))
+        .onChange(of: model.gap) { model.gap = min(max($0, 0), 100) } // the text field is unbounded
     }
 
     private var footer: some View {

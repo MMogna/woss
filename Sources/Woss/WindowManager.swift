@@ -29,6 +29,8 @@ func asAXValue(_ value: AnyObject?) -> AXValue? {
 /// Everything here must run on the main thread.
 final class WindowManager {
     private var cycle = CycleState<WindowRef>()
+    /// Space between snapped/tidied windows, from the config.
+    var gap: CGFloat = 0
 
     init() {
         // Without this, a frozen app can block an Accessibility call for 6 seconds, freezing
@@ -49,7 +51,7 @@ final class WindowManager {
 
         let step = cycle.advance(window: WindowRef(element: element), hotkey: hotkey, count: rects.count)
         let screen = screenFrameAX(forWindowFrame: frame(of: element))
-        let target = Geometry.snapFrame(rects[step], in: screen)
+        let target = Geometry.snapFrame(rects[step], in: screen, gap: gap)
         applyFrame(target, to: element)
 
         // A window with a minimum size may refuse to shrink to the target and end up hanging

@@ -220,6 +220,16 @@ final class LayoutStoreTests: XCTestCase {
         XCTAssertEqual(backup, "not json at all")
     }
 
+    func testGapRoundTripsAndDefaultsToZero() throws {
+        let url = tempURL()
+        try write(#"{"actions": {}}"#, to: url)
+        XCTAssertEqual(LayoutStore.loadConfig(from: url).gap, 0)
+        try write(#"{"gap": -5}"#, to: url)
+        XCTAssertEqual(LayoutStore.loadConfig(from: url).gap, 0)
+        try LayoutStore.saveConfig(WossConfig(layouts: [], keys: ActionKeys(), gap: 12), to: url)
+        XCTAssertEqual(LayoutStore.loadConfig(from: url).gap, 12)
+    }
+
     func testCorruptFileFallsBackToDefaults() throws {
         let url = tempURL()
         try write("not json", to: url)

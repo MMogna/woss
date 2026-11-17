@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         state.onChange = { [weak self] in
             guard let self else { return }
             self.listener.table = self.state.table
+            self.windowManager.gap = CGFloat(self.state.gap)
             self.menuBar.setLayoutCount(self.state.layouts.count)
         }
         state.reloadFromDisk()

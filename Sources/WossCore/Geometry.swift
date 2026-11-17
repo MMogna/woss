@@ -49,6 +49,14 @@ public enum Geometry {
         return best
     }
 
+    /// Target window frame (AX-space) for a layout rectangle on a screen (AX-space visible frame),
+    /// leaving `gap` points between neighbouring windows and along the screen edges: the screen
+    /// shrinks by half the gap, then the frame by half again, so touching windows end up `gap` apart.
+    public static func snapFrame(_ r: RelRect, in screen: CGRect, gap: CGFloat) -> CGRect {
+        let half = gap / 2
+        return snapFrame(r, in: screen.insetBy(dx: half, dy: half)).insetBy(dx: half, dy: half)
+    }
+
     /// Target window frame (AX-space) for a layout rectangle on a screen (AX-space visible frame).
     /// Layout y is measured from the bottom, so it is flipped here.
     public static func snapFrame(_ r: RelRect, in screen: CGRect) -> CGRect {

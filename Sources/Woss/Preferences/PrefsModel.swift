@@ -20,6 +20,7 @@ struct LayoutRow: Identifiable {
 final class PrefsModel: ObservableObject {
     @Published var layoutRows: [LayoutRow]
     @Published var keys: ActionKeys
+    @Published var gap: Int
 
     /// Layouts from config.json that are not part of the built-in list (hand-added ones).
     /// They are not shown in the window, but they are kept when saving.
@@ -51,9 +52,10 @@ final class PrefsModel: ObservableObject {
         "9": ("Sixths, Eighths & Ninths", "Ninths"),
     ]
 
-    init(layouts: [Layout], keys: ActionKeys) {
+    init(layouts: [Layout], keys: ActionKeys, gap: Int) {
         self.layoutRows = PrefsModel.rows(from: layouts)
         self.keys = keys
+        self.gap = gap
         let known = Set(DefaultLayouts.all.map(\.name))
         self.extras = layouts.filter { !known.contains($0.name) }
     }
@@ -106,6 +108,7 @@ final class PrefsModel: ObservableObject {
     func resetDefaults() {
         layoutRows = PrefsModel.rows(from: DefaultLayouts.all)
         keys = ActionKeys()
+        gap = 0
         extras = []
     }
 
